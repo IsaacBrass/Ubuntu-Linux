@@ -4,7 +4,7 @@ FROM ubuntu:24.04
 # Avoid prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update package lists and install base dependencies
+# A single RUN command to set up all dependencies to optimize layer caching.
 RUN apt-get update && apt-get install -y \
     software-properties-common \
     build-essential \
@@ -14,30 +14,32 @@ RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
     ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-
-# --- Install g++ 15 ---
-# Add the PPA for the latest GCC toolchain
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test -y
-
-# --- Install clang++ 20 ---
-# Add the LLVM GPG key and repository
-RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN add-apt-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-20 main" -y
-
-# --- Install Compilers and Clean Up ---
-# Update package lists again and install the specific compiler versions
-RUN apt-get update && apt-get install -y \
+    \
+    # --- Add Repositories ---
+    # Add the PPA for the latest GCC toolchain and the LLVM repository for Clang
+    add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/llvm-archive-keyring.gpg && \
+    echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-20 main" > /etc/apt/sources.list.d/llvm.list && \
+    \
+    # --- Install Compilers ---
+    # Update package lists again and install the specific compiler versions
+    apt-get update && \
+    apt-get install -y \
     g++-15 \
+    gcc-15 \
     clang-20 \
     lld-20 && \
-    rm -rf /var/lib/apt/lists/*
-
-# Set g++-15 and clang++-20 as the default compilers for the session if needed
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100 && \
+    \
+    # --- Set Compiler Alternatives ---
+    # Set g++-15 and clang++-20 as the default compilers
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100 && \
-    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100 && \
+    \
+    # --- Clean Up ---
+    # Remove package lists to reduce image size
+    rm -rf /var/lib/apt/lists/*
 
 # --- User and Workspace Setup ---
 # Create a non-root user 'vscode' with sudo access
