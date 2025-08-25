@@ -1,1 +1,24 @@
-
+{
+  "name": "Ubuntu 24.04 (g++ 15 & clang++ 20)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash"
+      },
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.makefile-tools",
+        "cheshirekow.cmake-format"
+      ]
+    }
+  },
+  // Command to run after the container is created.
+  "postCreateCommand": "echo 'Container successfully built!' && g++-15 --version && clang++-20 --version",
+  // Run as a non-root user.
+  "remoteUser": "vscode"
+}
